@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guía Definitiva: Packaging y Aplicaciones 3D</title>
+
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Fuentes: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- React y Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f8fa;
+            color: #111827;
+        }
+        .font-serif {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+        }
+        .section-fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .section-fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .product-box {
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease-out, background-color 0.5s ease-out, border-radius 0.5s ease-out, box-shadow 0.5s ease-out;
+        }
+        .perspective-container {
+            perspective: 1200px;
+        }
+        .scale-in { animation: scaleIn 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) forwards; }
+        .scale-out { animation: scaleOut 0.4s cubic-bezier(0.755, 0.05, 0.855, 0.06) forwards; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes scaleOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.95); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // =============== DATOS DEL MÓDULO ===============
+        const skills = [
+            { title: "Desarrollo de Packaging", icon: "package", details: { points: ["El dieline (troquel) es el plano 2D del empaque.", "La jerarquía visual debe guiar al consumidor (marca, producto, variedad).", "Debe comunicar la esencia de la marca y seducir en el punto de venta."], errors: ["Ignorar los márgenes de seguridad para el texto.", "No considerar el material final del empaque.", "Usar demasiadas fuentes o colores, creando un diseño caótico.", "Crear un diseño que es difícil de ensamblar."], task: "Descarga una plantilla de dieline de una caja. Aplica un diseño simple y anota dónde irían los pliegues y cortes." } },
+            { title: "Mockups y Prototipado 3D", icon: "box", details: { points: ["El diseño 2D se 'envuelve' sobre un modelo 3D.", "El contexto es clave: presenta el mockup en un ambiente relevante.", "Valida el concepto antes de la costosa producción física."], errors: ["Usar imágenes de baja resolución que se ven pixeladas.", "No ajustar la iluminación para que parezca realista.", "Deformar el diseño 2D al aplicarlo sobre una superficie curva.", "Olvidar mostrar el mockup desde múltiples ángulos."], task: "Busca un mockup 3D gratuito (ej. una lata). En Photoshop, edita la 'smart layer' con un diseño propio y observa cómo se actualiza." } },
+            { title: "Visualización de Productos", icon: "camera", details: { points: ["Se crea una escena con el producto, luces y materiales.", "La iluminación de 3 puntos (principal, relleno, contra) es un estándar.", "La composición (regla de tercios) es tan importante como en fotografía.", "El objetivo es obtener renders fotorrealistas para marketing."], errors: ["Reflejos irreales o mal posicionados.", "Texturas que no coinciden con la escala del objeto.", "Crear materiales 'perfectos' sin imperfecciones sutiles.", "Sombras demasiado duras o inexistentes."], task: "En el Laboratorio 3D, experimenta con los materiales. Observa cómo la luz cambia en un material brillante vs. uno mate." } },
+            { title: "Consideraciones de Impresión", icon: "printer", details: { points: ["El archivo final debe estar en CMYK, a 300 DPI.", "Incluir 3-5 mm de sangrado (bleed) es crucial.", "Siempre solicita una prueba de color física (press proof).", "Los acabados especiales (barniz, stamping) se indican en capas separadas."], errors: ["Enviar archivos en RGB (los colores cambiarán).", "No incrustar las fuentes o convertirlas a contornos.", "No tener en cuenta el grosor del material en los pliegues.", "Exportar con una resolución demasiado baja para impresión."], task: "En Illustrator, crea un documento y busca las opciones de 'Sangrado' (Bleed). Añade 3mm y observa las guías rojas." } }
+        ];
+        
+        const software = [
+            { name: "Adobe Dimension", icon: "cube", curve: "Suave", bestFor: "Diseñadores que necesitan mockups realistas sin una curva de aprendizaje 3D compleja.", proTip: "Utiliza la integración con Adobe Stock para arrastrar modelos, materiales y luces de alta calidad directamente a tu escena.", channel: { name: "Adobe Creative Cloud", link: "https://www.youtube.com/user/adobecreativecloud" } },
+            { name: "Blender", icon: "blender", curve: "Pronunciada", bestFor: "Crear escenas personalizadas, animaciones y renders complejos desde cero.", proTip: "Aprende los atajos de teclado para las operaciones más comunes (mover, rotar, escalar). Aumentará tu velocidad de trabajo exponencialmente.", channel: { name: "Blender Guru", link: "https://www.youtube.com/user/AndrewPPrice" } }
+        ];
+
+        const projects = [
+            { title: "Packaging para Café de Especialidad", icon: "coffee", details: { briefing: "Una nueva marca de café de origen único necesita un packaging premium y sostenible para 3 de sus variedades. El diseño debe comunicar calidad, origen y ser memorable en el anaquel.", steps: ["Investigación de mercado y moodboard.", "Diseño del sistema de identidad visual para las 3 variedades.", "Creación del dieline en Illustrator.", "Generación de 3 mockups fotorrealistas en Dimension.", "Preparación del arte final para imprenta."], proTip: "Investiga a la competencia para encontrar un espacio visual único. La diferenciación es clave en el anaquel.", caseStudy: { brand: "Blue Bottle Coffee", text: "El packaging de Blue Bottle es un ejemplo de minimalismo y branding premium. Su diseño simple y limpio comunica calidad y frescura, convirtiendo un simple empaque en una declaración de marca." }, glossary: [{term: "Stamping", def: "Proceso de acabado que transfiere una lámina metálica al papel mediante calor y presión."}] } },
+            { title: "Visualización de un Gadget Tecnológico", icon: "smartphone", details: { briefing: "Una startup lanzará unos nuevos auriculares inalámbricos. Necesitan una serie de imágenes de producto para su campaña de lanzamiento en web y redes sociales, antes de tener el producto físico.", steps: ["Importar o modelar la geometría base de los auriculares.", "Crear y aplicar materiales realistas (plástico mate, metal pulido, silicona).", "Configurar una escena con iluminación de estudio de 3 puntos.", "Renderizar 5 vistas clave del producto (frontal, lateral, detalle, etc.).", "Post-producir los renders en Photoshop para ajustar color y contraste."], proTip: "La iluminación lo es todo. Estudia fotografía de producto real para entender cómo la luz interactúa con los materiales. Un buen HDRI hace maravillas.", caseStudy: { brand: "Apple", text: "Apple revolucionó la presentación de productos con sus renders limpios sobre fondos blancos. Esta técnica aísla el producto, enfocando toda la atención en los detalles de su diseño y materiales." }, glossary: [{term: "HDRI", def: "High Dynamic Range Image. Una imagen panorámica que se usa para iluminar una escena 3D y crear reflejos realistas."}] } },
+            { title: "Escena 3D para Campaña Publicitaria", icon: "image", details: { briefing: "Una marca de bebidas energéticas quiere una imagen visualmente impactante para su nueva campaña 'Sabor Cósmico'. La escena debe ser abstracta, vibrante y mostrar el producto como el héroe.", steps: ["Conceptualización de la escena basada en el moodboard.", "Modelado de formas abstractas y dinámicas en Blender.", "Composición de la escena integrando la lata del producto.", "Creación de un sistema de iluminación dramático y colorido.", "Renderizado y optimización para Instagram (post y story)."], proTip: "Juega con la profundidad de campo (Depth of Field) para enfocar la atención en el producto y crear una sensación de espacio y profesionalismo.", caseStudy: { brand: "Nike", text: "Nike utiliza escenas 3D abstractas para comunicar conceptos como velocidad o tecnología. El producto interactúa con formas y colores que evocan estas ideas, creando una narrativa visual potente." }, glossary: [{term: "Depth of Field (DOF)", def: "El efecto de desenfoque en las partes de la imagen que están fuera del plano de enfoque principal."}] } }
+        ];
+        
+        const glossaryTerms = [
+            { term: "Dieline (Troquel)", definition: "El plano técnico 2D de un empaque que muestra todas las líneas de corte, plegado y perforado." },
+            { term: "Bleed (Sangrado)", definition: "Un área extra de la imagen que se extiende más allá de los bordes de corte para evitar filetes blancos tras el guillotinado." },
+            { term: "CMYK", definition: "Modelo de color (Cian, Magenta, Amarillo, Negro) utilizado para la impresión. Es un modelo sustractivo." },
+            { term: "RGB", definition: "Modelo de color (Rojo, Verde, Azul) utilizado para pantallas digitales. Es un modelo aditivo." },
+            { term: "UV Varnish (Barniz UV)", definition: "Un acabado brillante y protector que se aplica a áreas específicas del diseño y se cura con luz ultravioleta." },
+            { term: "Polygon Count", definition: "El número de polígonos que componen un modelo 3D. Un número más alto permite más detalle, pero requiere más potencia de cálculo." },
+            { term: "Ambient Occlusion (AO)", definition: "Una técnica de sombreado que calcula qué tan expuesto está cada punto de una escena a la luz ambiental, añadiendo realismo y profundidad." },
+            { term: "PBR (Physically Based Rendering)", definition: "Un método de shading y rendering que proporciona una representación más precisa de cómo la luz interactúa con las propiedades de los materiales." },
+            { term: "Stamping (Estampado)", definition: "Proceso de acabado que transfiere una lámina metálica (foil) o de color al papel mediante calor y presión." },
+            { term: "Render Engine", definition: "El software o algoritmo que calcula y genera la imagen final a partir de la escena 3D (ej. Cycles en Blender, V-Ray)." },
+            { term: "UV Mapping", definition: "El proceso de 'desplegar' un modelo 3D en un plano 2D para poder aplicar texturas correctamente sobre su superficie." },
+            { term: "Subsurface Scattering (SSS)", definition: "Efecto de luz que penetra la superficie de un objeto translúcido (como piel, cera o mármol) y se dispersa por dentro antes de salir." }
+        ];
+
+        const resources = {
+            youtube: [ { name: "Pixelford", description: "Tutoriales de Cinema 4D y renderizado.", link:"#" }, { name: "Greyscalegorilla", description: "Recursos y tutoriales para diseñadores 3D.", link:"#" }, { name: "Ian Hubert", description: "Famoso por sus 'Lazy Tutorials' de Blender, llenos de trucos rápidos y eficientes.", link:"#" } ],
+            communities: [ { name: "Behance", description: "Muestra tu trabajo y encuentra inspiración.", link:"#" }, { name: "Dribbble", description: "Comunidad para creativos digitales.", link:"#" }, { name: "Pinterest", description: "Una fuente inagotable de inspiración visual para moodboards de packaging y 3D.", link:"#" } ],
+            assets: [ { name: "Poliigon", description: "Texturas y modelos 3D de alta calidad.", link:"#" }, { name: "Quixel Megascans", description: "Librería masiva de assets 3D fotorrealistas.", link:"#" }, { name: "HDRI Haven", description: "Librería de imágenes HDRI de alta calidad y gratuitas para iluminación.", link:"#" } ]
+        };
+
+        // =============== COMPONENTES ===============
+        
+        const AccordionItem = ({ item, isOpen, onClick }) => (
+            <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden transition-all duration-300">
+                <button onClick={onClick} className="w-full flex items-center justify-between p-5 text-left">
+                    <div className="flex items-center gap-4"><i data-lucide={item.icon} className="w-8 h-8 text-blue-600 flex-shrink-0"></i><h3 className="font-semibold text-lg">{item.title}</h3></div>
+                    <i data-lucide="chevron-down" className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}></i>
+                </button>
+                <div className={`transition-all duration-300 ease-in-out grid ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                    <div className="overflow-hidden"><div className="px-5 pb-5 pt-2 space-y-4">
+                        <div><h4 className="font-bold mb-2 text-sm">Puntos Clave:</h4><ul className="space-y-1 list-disc list-inside text-gray-600 text-sm">{item.details.points.map(p => <li key={p}>{p}</li>)}</ul></div>
+                        <div className="mt-3"><h4 className="font-bold mb-2 text-sm text-red-600">Errores Comunes a Evitar:</h4><ul className="space-y-1 list-disc list-inside text-gray-600 text-sm">{item.details.errors.map(e => <li key={e}>{e}</li>)}</ul></div>
+                        <div className="mt-4 pt-4 border-t border-gray-200/60"><h4 className="font-bold text-sm mb-1">Tarea Práctica:</h4><p className="text-sm text-gray-600">{item.details.task}</p></div>
+                    </div></div>
+                </div>
+            </div>
+        );
+
+        const Lab3D = () => {
+            const [rotation, setRotation] = useState({ x: -20, y: 30 });
+            const [shape, setShape] = useState('cube');
+            const [lightColor, setLightColor] = useState('#FFFFFF');
+            const [lightIntensity, setLightIntensity] = useState(1);
+            const shapeClasses = { cube: 'rounded-lg', sphere: 'rounded-full', cylinder: 'rounded-lg w-32 h-48' };
+            const lightEffect = { boxShadow: `0 0 ${80 * lightIntensity}px ${20 * lightIntensity}px ${lightColor}${Math.round(lightIntensity * 40).toString(16).padStart(2, '0')}, inset 0 0 ${40 * lightIntensity}px ${lightColor}${Math.round(lightIntensity * 30).toString(16).padStart(2, '0')}` };
+
+            return (
+                <div className="grid md:grid-cols-2 gap-8 items-center">
+                    <div className="perspective-container h-64 flex items-center justify-center">
+                        <div className={`product-box w-40 h-40 bg-gray-300 ${shapeClasses[shape]}`} style={{ transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`, ...lightEffect }}></div>
+                    </div>
+                    <div className="space-y-4">
+                        <div><label className="font-medium text-sm">Forma</label><div className="flex gap-2 mt-1">{['cube', 'sphere', 'cylinder'].map(s => <button key={s} onClick={() => setShape(s)} className={`px-3 py-1 text-sm rounded-full capitalize ${shape === s ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>{s}</button>)}</div></div>
+                        <div><label className="font-medium text-sm">Rotación Y</label><input type="range" min="-180" max="180" value={rotation.y} onChange={e => setRotation(r => ({...r, y: parseInt(e.target.value)}))} className="w-full" /></div>
+                        <div><label className="font-medium text-sm">Rotación X</label><input type="range" min="-90" max="90" value={rotation.x} onChange={e => setRotation(r => ({...r, x: parseInt(e.target.value)}))} className="w-full" /></div>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div><label className="font-medium text-sm">Color de Luz</label><input type="color" value={lightColor} onChange={e => setLightColor(e.target.value)} className="w-full h-8 p-0 border-none rounded-md" /></div>
+                           <div><label className="font-medium text-sm">Intensidad</label><input type="range" min="0.2" max="1.5" step="0.1" value={lightIntensity} onChange={e => setLightIntensity(parseFloat(e.target.value))} className="w-full" /></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ProjectModal = ({ project, onClose }) => {
+            const [closing, setClosing] = useState(false);
+            const handleClose = () => { setClosing(true); setTimeout(onClose, 300); };
+            useEffect(() => { const handleKeyDown = (e) => e.key === 'Escape' && handleClose(); window.addEventListener('keydown', handleKeyDown); lucide.createIcons(); return () => window.removeEventListener('keydown', handleKeyDown); }, []);
+            return (
+                <div onClick={handleClose} className={`fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 ${closing ? 'fade-out' : 'fade-in'}`}>
+                    <div onClick={e => e.stopPropagation()} className={`bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col ${closing ? 'scale-out' : 'scale-in'}`}>
+                        <header className="p-6 flex justify-between items-start border-b"><div><i data-lucide={project.icon} className="w-10 h-10 text-blue-600 mb-2"></i><h3 className="text-2xl font-bold">{project.title}</h3></div><button onClick={handleClose} className="p-2 rounded-full text-gray-500 hover:bg-gray-100"><i data-lucide="x" className="w-6 h-6"></i></button></header>
+                        <main className="p-6 overflow-y-auto space-y-6">
+                            <div><h4 className="font-semibold text-lg mb-2">Qué Debo Hacer (Briefing)</h4><p className="text-sm text-gray-600">{project.details.briefing}</p></div>
+                            <div><h4 className="font-semibold text-lg mb-2">Cómo Hacerlo (Pasos Sugeridos)</h4><ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">{project.details.steps.map(s => <li key={s}>{s}</li>)}</ol></div>
+                            <div><h4 className="font-semibold text-lg mb-2">Inspiración: {project.details.caseStudy.brand}</h4><p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{project.details.caseStudy.text}</p></div>
+                            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg"><h4 className="font-semibold text-lg mb-1 text-blue-800">Consejo Profesional</h4><p className="text-blue-700">{project.details.proTip}</p></div>
+                        </main>
+                        <footer className="p-6 border-t mt-auto"><a href="#" className="w-full text-center block bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors">Entregar Proyecto</a></footer>
+                    </div>
+                </div>
+            );
+        };
+        
+        const WorkflowItem = ({ step, index, isOpen, onClick }) => (
+             <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden transition-all duration-300">
+                <button onClick={onClick} className="w-full flex items-center justify-between p-5 text-left">
+                    <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">{index + 1}</div>
+                        <h3 className="font-semibold text-lg">{step.title}</h3>
+                    </div>
+                    <i data-lucide="chevron-down" className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}></i>
+                </button>
+                <div className={`transition-all duration-300 ease-in-out grid ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                    <div className="overflow-hidden"><div className="px-5 pb-5 pt-2 space-y-3">
+                        <div className="text-sm">
+                            <h4 className="font-bold mb-1">Acciones Críticas:</h4>
+                            <ul className="list-disc list-inside text-gray-600">{step.actions.map(a => <li key={a}>{a}</li>)}</ul>
+                        </div>
+                        <div className="text-sm">
+                            <h4 className="font-bold mb-1">Herramientas Clave:</h4>
+                            <p className="text-gray-600">{step.tools}</p>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+        );
+
+        const PackagingModulePage = () => {
+            const [activeSection, setActiveSection] = useState('fundamentos');
+            const [modalProject, setModalProject] = useState(null);
+            const [openAccordion, setOpenAccordion] = useState(0);
+            const [openWorkflow, setOpenWorkflow] = useState(0);
+            const sectionRefs = useRef({});
+            
+            const sections = [
+                { id: 'fundamentos', label: 'Fundamentos', icon: 'book-open' },
+                { id: 'software', label: 'Software', icon: 'cpu' },
+                { id: 'flujo', label: 'Flujo de Trabajo', icon: 'workflow' },
+                { id: 'laboratorio', label: 'Laboratorio', icon: 'flask-conical' },
+                { id: 'proyectos', label: 'Proyectos', icon: 'award' },
+                { id: 'glosario', label: 'Glosario', icon: 'book-marked' },
+                { id: 'recursos', label: 'Recursos', icon: 'folder-search' }
+            ];
+            
+             const workflowSteps = [
+                { title: "Brief y Conceptualización", actions: ["Entender los objetivos del cliente y el presupuesto.", "Investigar mercado, competencia y público objetivo.", "Crear un moodboard de inspiración y definir la dirección creativa."], tools: "Miro, Pinterest, Figma" },
+                { title: "Diseño 2D y Dieline", actions: ["Crear o adaptar el troquel del empaque.", "Diseñar la gráfica aplicando la identidad de marca.", "Realizar pruebas de legibilidad del texto.", "Preparar el archivo con capas separadas para acabados especiales."], tools: "Adobe Illustrator" },
+                { title: "Modelado y Texturizado 3D", actions: ["Crear o importar el modelo 3D del producto y empaque.", "Optimizar la geometría del modelo para un renderizado eficiente.", "Aplicar texturas y materiales realistas (PBR).", "Configurar el mapeado UV para aplicar el diseño 2D."], tools: "Blender, Adobe Dimension" },
+                { title: "Composición y Render", actions: ["Construir la escena 3D con el producto y el entorno.", "Configurar la iluminación y las cámaras.", "Ajustar la profundidad de campo para guiar la mirada.", "Generar los renders en alta resolución."], tools: "Blender, Dimension, Keyshot" },
+                { title: "Post-producción y Arte Final", actions: ["Ajustar color, contraste y nitidez de los renders.", "Verificar el perfil de color final (CMYK para imprenta).", "Preparar los archivos finales para imprenta (PDF/X-4).", "Generar versiones optimizadas para uso digital (web, redes)."], tools: "Adobe Photoshop, Illustrator" }
+            ];
+
+            useEffect(() => {
+                lucide.createIcons();
+                const observer = new IntersectionObserver(
+                    (entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('visible');
+                                setActiveSection(entry.target.id);
+                            }
+                        });
+                    },
+                    { rootMargin: "-40% 0px -60% 0px", threshold: 0 }
+                );
+                
+                const currentRefs = [];
+                Object.values(sectionRefs.current).forEach(ref => {
+                    if(ref) { observer.observe(ref); currentRefs.push(ref); }
+                });
+
+                return () => { currentRefs.forEach(ref => { if(ref) observer.unobserve(ref); }); };
+            }, []);
+
+            const scrollToSection = (id) => {
+                sectionRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50">
+                    {modalProject && <ProjectModal project={modalProject} onClose={() => setModalProject(null)} />}
+                    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 p-4 sm:p-8">
+                        
+                        <aside className="lg:col-span-3 lg:sticky top-8 self-start">
+                            <div className="p-4 bg-white/80 backdrop-blur-lg rounded-xl border border-gray-200/80 shadow-sm">
+                                <h2 className="font-bold text-xl mb-1">Packaging y 3D</h2>
+                                <p className="text-sm text-gray-500 mb-4">Canales de Aprendizaje</p>
+                                <nav className="space-y-1.5">
+                                    {sections.map(section => (
+                                        <button key={section.id} onClick={() => scrollToSection(section.id)} className={`w-full flex items-center gap-3 p-3 rounded-lg text-sm font-semibold transition-all duration-200 ${activeSection === section.id ? 'bg-blue-600 text-white shadow' : 'text-gray-700 hover:bg-gray-200/60'}`}>
+                                            <i data-lucide={section.icon} className="w-5 h-5"></i>
+                                            <span>{section.label}</span>
+                                        </button>
+                                    ))}
+                                </nav>
+                            </div>
+                        </aside>
+
+                        <main className="lg:col-span-9">
+                            <div className="space-y-24">
+                                <section ref={el => sectionRefs.current.fundamentos = el} id="fundamentos" className="section-fade-in">
+                                    <h2 className="font-bold text-3xl md:text-4xl mb-8">Fundamentos</h2>
+                                    <div className="space-y-4">{skills.map((item, index) => <AccordionItem key={item.title} item={item} isOpen={openAccordion === index} onClick={() => setOpenAccordion(openAccordion === index ? null : index)} />)}</div>
+                                </section>
+
+                                <section ref={el => sectionRefs.current.software = el} id="software" className="section-fade-in">
+                                    <h2 className="font-bold text-3xl md:text-4xl mb-8">Software Esencial</h2>
+                                    <div className="grid md:grid-cols-2 gap-6">{software.map(item => (<div key={item.name} className="bg-white p-6 rounded-xl border border-gray-200/80 shadow-sm"><div className="flex items-center gap-4 mb-4"><i data-lucide={item.icon} className="w-10 h-10 text-gray-500 flex-shrink-0"></i><div><h3 className="font-semibold text-lg">{item.name}</h3><p className="text-sm text-gray-600">{item.description}</p></div></div><div className="text-xs space-y-2 pt-3 border-t"><p><strong className="font-semibold">Curva de Aprendizaje:</strong> {item.curve}</p><p><strong className="font-semibold">Ideal Para:</strong> {item.bestFor}</p><p className="font-semibold pt-2">Tip Profesional:</p><p className="text-gray-600 -mt-1">{item.proTip}</p><a href={item.channel.link} target="_blank" className="flex items-center gap-2 text-blue-600 pt-2 hover:underline"><i data-lucide="youtube" className="w-4 h-4"></i><strong>Canal Recomendado:</strong> {item.channel.name}</a></div></div>))}</div>
+                                </section>
+
+                                <section ref={el => sectionRefs.current.flujo = el} id="flujo" className="section-fade-in">
+                                    <h2 className="font-bold text-3xl md:text-4xl mb-8">Flujo de Trabajo Profesional</h2>
+                                    <div className="space-y-4">{workflowSteps.map((step, index) => <WorkflowItem key={step.title} step={step} index={index} isOpen={openWorkflow === index} onClick={() => setOpenWorkflow(openWorkflow === index ? null : index)} />)}</div>
+                                </section>
+
+                                <section ref={el => sectionRefs.current.laboratorio = el} id="laboratorio" className="section-fade-in">
+                                    <h2 className="font-bold text-3xl md:text-4xl mb-8">Laboratorio 3D: Visualización</h2>
+                                    <div className="bg-white p-6 md:p-8 rounded-xl border border-gray-200/80 shadow-sm"><div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg mb-6"><h4 className="font-semibold text-blue-800">Guía de Laboratorio</h4><p className="text-sm text-blue-700">Usa los controles para manipular el objeto. Observa cómo la luz incide de forma diferente en cada material y cómo la rotación revela nuevas caras y perspectivas del producto.</p></div><Lab3D /></div>
+                                </section>
+
+                                <section ref={el => sectionRefs.current.proyectos = el} id="proyectos" className="section-fade-in">
+                                    <h2 className="font-bold text-3xl md:text-4xl mb-8">Proyectos Prácticos</h2>
+                                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">{projects.map((item) => (<div key={item.title} className="bg-white p-6 rounded-xl border border-gray-200/80 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col"><i data-lucide={item.icon} className="w-8 h-8 text-blue-600 mb-4"></i><h3 className="font-semibold text-lg mb-2 flex-grow">{item.title}</h3><p className="text-sm text-gray-600 mb-4">{item.description}</p><button onClick={() => setModalProject(item)} className="mt-auto w-full text-sm font-semibold text-blue-600 hover:text-blue-800 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">Ver Detalles</button></div>))}</div>
+                                </section>
+                                
+                                <section ref={el => sectionRefs.current.glosario = el} id="glosario" className="section-fade-in">
+                                    <h2 className="font-bold text-3xl md:text-4xl mb-8">Glosario Técnico</h2>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        {glossaryTerms.map(term => (
+                                            <div key={term.term} className="bg-white p-4 rounded-lg border border-gray-200/80 shadow-sm">
+                                                <h3 className="font-semibold">{term.term}</h3>
+                                                <p className="text-sm text-gray-600">{term.definition}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                <section ref={el => sectionRefs.current.recursos = el} id="recursos" className="section-fade-in">
+                                    <h2 className="font-bold text-3xl md:text-4xl mb-8">Recursos y Siguientes Pasos</h2>
+                                    <div className="grid lg:grid-cols-3 gap-6">{Object.entries(resources).map(([category, items]) => (<div key={category} className="bg-white p-6 rounded-xl border border-gray-200/80 shadow-sm"><h3 className="font-semibold text-lg mb-3 capitalize">{category === 'youtube' ? 'Canales de YouTube' : category}</h3><div className="space-y-3">{items.map(item => (<a key={item.name} href={item.link} target="_blank" className="block text-sm hover:bg-gray-50 p-2 rounded-md"><strong className="font-semibold text-gray-800">{item.name}</strong><p className="text-gray-500">{item.description}</p></a>))}</div></div>))}</div>
+                                </section>
+                            </div>
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<PackagingModulePage />);
+    </script>
+</body>
+</html>
